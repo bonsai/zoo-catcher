@@ -1,0 +1,3 @@
+{:paths ["src"]
+ :deps-channels {zoo "0.1.0"}
+ :aliases {:app {:target :browser}}}
