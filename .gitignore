@@ -1,0 +1,19 @@
+# ── Node / npm ────────────────────────────────────────────────────────
+node_modules/
+package-lock.json
+yarn.lock
+resources/public/js/
+resources/public/js/*.js
+resources/public/js/*.js.map
+.vscode/
+.idea/
+*.suo
+*.ntvs overs/
+*.njsproj
+*.sln
+.DS_Store
+ThumbsUpTmp/
+*.log
+*~
+.*.swp
+*.tmp
