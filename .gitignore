@@ -18,3 +18,7 @@ ThumbsUpTmp/
 .*.swp
 *.tmp
 .vercel
+
+# python
+__pycache__/
+*.pyc
