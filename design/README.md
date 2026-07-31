@@ -6,6 +6,7 @@ CAMEL（Communicative Agents）の RolePlaying 対話で、ゲーム設計書を
 
 | バージョン | 日時 | モデル | サマリー | 成果物 |
 |---|---|---|---|---|
+| v2 | 2026-08-01 | OpenRouter free | v2: クラス設計（Player/Animal/GameManager）を追加 | [game-design-v2.md](./versions/game-design-v2.md) |
 | v1 | 2026-08-01 | OpenRouter free | 初版（手動実行） | [game-design-v1.md](./versions/game-design-v1.md) |
 
 最新の一覧は [CHANGELOG.md](./CHANGELOG.md) を参照。
