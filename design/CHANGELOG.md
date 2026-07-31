@@ -11,3 +11,9 @@ CAMEL によるゲーム設計の各イテレーションを記録する。
 - サマリー: 初版。CAMEL RolePlaying（Game Designer × Game Director）による設計対話。ゲームコンセプト・コアメカニクス・スコアリング・UIフロー・テスト計画の章立てを生成。
 
 ---
+## v2 (2026-08-01 01:02:10)
+- モデル: openrouter/free (free)
+- ステップ数: 4
+- 成果物: `design/versions/game-design-v2.md`
+- サマリー: v2 設計を追加
+
