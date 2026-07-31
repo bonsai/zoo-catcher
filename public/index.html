@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Zoo Catcher</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; cursor: crosshair; }
+    #room { position: relative; width: 100%; height: 100%; }
+    #on { position: absolute; top: 12px; left: 12px; z-index: 2; padding: 9px 20px; border: 0; border-radius: 8px; font-size: 18px; cursor: pointer; }
+    #message { position: absolute; top: 64px; left: 14px; z-index: 2; color: #fff; font: 14px system-ui, sans-serif; }
+    .animal { position: absolute; font-size: 32px; opacity: 0; transition: left .2s linear, top .2s linear; user-select: none; }
+  </style>
+</head>
+<body>
+  <button id="on" type="button">🔦 ライトをつける</button>
+  <div id="message">ライトをつけて、動物を探そう！（5秒間）</div>
+  <main id="room" aria-label="動物園">
+    <div class="animal">🐰</div><div class="animal">🦘</div>
+    <div class="animal">🐸</div><div class="animal">🦗</div>
+  </main>
+  <script>
+    (() => {
+      let lit = false, timer;
+      const radius = 70, room = document.querySelector('#room');
+      const animals = [...document.querySelectorAll('.animal')];
+      const move = animal => {
+        animal.style.left = `${Math.max(0, Math.random() * (innerWidth - 48))}px`;
+        animal.style.top = `${Math.max(0, Math.random() * (innerHeight - 48))}px`;
+      };
+      animals.forEach(move);
+      setInterval(() => animals.forEach(move), 300);
+      const hide = () => { lit = false; document.body.style.background = '#000'; animals.forEach(a => a.style.opacity = 0); };
+      document.querySelector('#on').addEventListener('click', () => {
+        lit = true; clearTimeout(timer); timer = setTimeout(hide, 5000);
+      });
+      room.addEventListener('mousemove', event => {
+        if (!lit) return;
+        const { clientX: x, clientY: y } = event;
+        document.body.style.background = `radial-gradient(circle ${radius}px at ${x}px ${y}px, rgba(255,255,255,.9) 0, rgba(255,255,255,.4) ${radius * .6}px, #000 ${radius}px)`;
+        animals.forEach(a => {
+          const d = Math.hypot(x - a.offsetLeft - 16, y - a.offsetTop - 16);
+          a.style.opacity = d < radius ? 1 : 0;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

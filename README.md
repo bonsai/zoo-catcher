@@ -52,3 +52,17 @@ gcloud run deploy zoocatcher --image zoocatcher --platform managed
 ```
 
 This will deploy the service and provide a publicly accessible URL.
+
+## Deployment to Vercel
+
+The game lives in `public/` (`public/index.html` = Zoo Catcher, `public/kaichudentou.html` = Flashlight Game) and is served by the Express app in `index.js`.
+
+1. Open <https://vercel.com/new> and import `bonsai/zoo-catcher`.
+2. Leave **Framework Preset** as `Express` and **Build Command** empty.
+3. Click **Deploy**, then open the generated URL and play.
+
+Alternatively, install the Vercel CLI and run:
+
+```bash
+npx vercel --prod
+```
