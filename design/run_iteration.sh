@@ -64,6 +64,29 @@ DESIGN_SUMMARY="${DESIGN_SUMMARY:-v$NEXT 設計を追加}"
   echo ""
 } >> "$CHANGELOG"
 
+# README のバージョンテーブルに行を追加
+python3 - "$README" "$NEXT" "$DESIGN_SUMMARY" <<'PYEOF'
+import sys
+readme, n, summary = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(readme, encoding="utf-8") as f:
+    lines = f.readlines()
+row = f"| v{n} | {__import__('datetime').date.today().isoformat()} | OpenRouter free | {summary} | [game-design-v{n}.md](./versions/game-design-v{n}.md) |\n"
+out = []
+inserted = False
+for line in lines:
+    if not inserted and line.startswith("|---"):
+        out.append(line)
+        out.append(row)
+        inserted = True
+    else:
+        out.append(line)
+if not inserted:
+    out.append(row)
+with open(readme, "w", encoding="utf-8") as f:
+    f.writelines(out)
+print(f"README に v{n} を追記しました")
+PYEOF
+
 echo "==> [6/6] コミット・プッシュ"
 if [ -n "${GITHUB_ACTIONS:-}" ]; then
   git config user.name "github-actions[bot]"
