@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Zoo Catcher</title>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-color: #ffffff;
+            --accent-color: #ffcc00;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            touch-action: none;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            cursor: none;
+        }
+        canvas {
+            display: block;
+        }
+        screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-color);
+            text-align: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.8);
+        }
+        screen.hidden {
+            display: none;
+        }
+        h1 { font-size: 3rem; margin-bottom: 1rem; color: var(--accent-color); }
+        p { font-size: 1.2rem; margin-bottom: 2rem; }
+        button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: var(--accent-color);
+            border: none;
+            border-radius: 50px;
+            color: #000;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:active { transform: scale(0.9); }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 15px;
+            box-sizing: border-box;
+            pointer-events: none;
+            display: flex;
+            justify-content: space-between;
+            z-index: 5;
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        stat-box { text-shadow: 2px 2px 4px #000; }
+        #combo-display {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2rem;
+            color: var(--accent-color);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        <div class="stat-box">SCORE: <span id="score-val">0</span></div>
+        <div class="stat-box">TIME: <span id="timer-val">60</span></div>
+    </div>
+    <div id="combo-display">COMBO x<span id="combo-val">0</span></div>
+
+    <!-- Screens -->
+    <div id="start-screen" class="screen">
+        <h1>Zoo Catcher</h1>
+        <p>ライトを動かして動物を照らし、<br>タップして捕まえよう！<br>連続で捕まえるとスコアアップ！</p>
+        <button id="start-btn">START</button>
+    </div>
+
+    <div id="end-screen" class="screen hidden">
+        <h1>GAME OVER</h1>
+        <p>FINAL SCORE: <span id="final-score">0</span></p>
+        <p>HIGHSCORE: <span id="high-score">0</span></p>
+        <button id="retry-btn">RETRY</button>
+    </div>
+
+    <canvas id="game-canvas"></canvas>
+</div>
+
+<script>
+/**
+ * Public API for testing
+ */
+window.ZooCatcherTest = {
+    calcPoints: ({base, combo, rare}) => {
+        const multiplier = 1 + (combo * 0.1);
+        const rareMult = rare? 5 : 1;
+        return Math.floor(base * multiplier * rareMult);
+    },
+    roundDuration: () => 60,
+    animalSpeed: ({level}) => 1 + (level * 0.2),
+    nextCombo: ({combo, success, maxCombo}) => {
+        return success? Math.min(combo + 1, maxCombo) : 0;
+    },
+    maxAnimals: ({level, base}) => base + level
+};
+
+/**
+ * Game Engine
+ */
+const canvas = document.getElementById('game-canvas');
+const ctx = canvas.getContext('2d');
+const container = document.getElementById('game-container');
+
+// Constants & Config
+const CONFIG = {
+    BASE_SCORE: 100,
+    MAX_COMBO: 10,
+    BASE_ANIMALS: 3,
+    ANIMAL_TYPES: [
+        { emoji: '🐰', score: 100, rare: false },
+        { emoji: '🦊', score: 150, rare: false },
+        { emoji: '🦌', score: 200, rare: false },
+        { emoji: '🦁', score: 300, rare: false },
+        { emoji: '🦄', score: 1000, rare: true } // Rare
+    ]
+};
+
+let state = {
+    score: 0,
+    combo: 0,
+    timer: 0,
+    highScore: localStorage.getItem('zoo_catcher_highscore') || 0,
+    gameActive: false,
+    mouse: { x: -1000, y: -1000 },
+    animals: [],
+    lastTime: 0,
+    level: 1,
+    timerInterval: null,
+    spawnInterval: null
+};
+
+// DOM Elements
+const screens = {
+    start: document.getElementById('start-screen'),
+    end: document.getElementById('end-screen')
+};
+const scoreVal = document.getElementById('score-val');
+const timerVal = document.getElementById('timer-val');
+const comboVal = document.getElementById('combo-val');
+const comboDisplay = document.getElementById('combo-display');
+const finalScoreVal = document.getElementById('final-score');
+const highScoreVal = document.getElementById('high-score');
+
+// Initialization
+function init() {
+    resize();
+    window.addEventListener('resize', resize);
+    container.addEventListener('mousemove', e => {
+        state.mouse.x = e.clientX;
+        state.mouse.y = e.clientY;
+    });
+    container.addEventListener('touchmove', e => {
+        state.mouse.x = e.touches[0].clientX;
+        state.mouse.y = e.touches[0].clientY;
+        e.preventDefault();
+    }, { passive: false });
+    container.addEventListener('click', handleAction);
+    container.addEventListener('touchstart', e => {
+        state.mouse.x = e.touches[0].clientX;
+        state.mouse.y = e.touches[0].clientY;
+        handleAction();
+    }, { passive: false });
+
+    document.getElementById('start-btn').onclick = startGame;
+    document.getElementById('retry-btn').onclick = startGame;
+
+    requestAnimationFrame(gameLoop);
+}
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+function startGame() {
+    state.score = 0;
+    state.combo = 0;
+    state.timer = window.ZooCatcherTest.roundDuration();
+    state.animals = [];
+    state.gameActive = true;
+    state.level = 1;
+    
+    screens.start.classList.add('hidden');
+    screens.end.classList.add('hidden');
+    
+    updateUI();
+    
+    clearInterval(state.timerInterval);
+    state.timerInterval = setInterval(() => {
+        state.timer--;
+        state.level = Math.floor((60 - state.timer) / 15) + 1;
+        updateUI();
+        if (state.timer <= 0) endGame();
+    }, 1000);
+
+    spawnAnimal();
+}
+
+function endGame() {
+    state.gameActive = false;
+    clearInterval(state.timerInterval);
+    if (state.score > state.highScore) {
+        state.highScore = state.score;
+        localStorage.setItem('zoo_catcher_highscore', state.highScore);
+    }
+    finalScoreVal.innerText = state.score;
+    highScoreVal.innerText = state.highScore;
+    screens.end.classList.remove('hidden');
+}
+
+function spawnAnimal() {
+    if (!state.gameActive) return;
+
+    const isRare = Math.random() < 0.1;
+    const type = isRare? CONFIG.ANIMAL_TYPES[4] : CONFIG.ANIMAL_TYPES[Math.floor(Math.random() * 4)];
+    
+    const animal = {
+        x: Math.random() * (canvas.width - 60) + 30,
+        y: Math.random() * (canvas.height - 60) + 30,
+        vx: (Math.random() - 0.5) * window.ZooCatcherTest.animalSpeed({level: state.level}),
+        vy: (Math.random() - 0.5) * window.ZooCatcherTest.animalSpeed({level: state.level}),
+        radius: 30,
+        emoji: type.emoji,
+        baseScore: type.score,
+        isRare: isRare,
+        life: 1.0, // For escape mechanism
+        escapeSpeed: 0.005 * state.level
+    };
+
+    state.animals.push(animal);
+
+    // Schedule next spawn
+    const nextSpawn = Math.max(500, 2000 - (state.level * 200));
+    setTimeout(spawnAnimal, nextSpawn);
+}
+
+function handleAction() {
+    if (!state.gameActive) return;
+
+    let caught = false;
+    for (let i = state.animals.length - 1; i >= 0; i--) {
+        const a = state.animals[i];
+        const dist = Math.hypot(state.mouse.x - a.x, state.mouse.y - a.y);
+        
+        // Check if animal is visible (within light radius)
+        const distToLight = Math.hypot(state.mouse.x - a.x, state.mouse.y - a.y);
+        if (distToLight < 80) {
+            // Catch!
+            const points = window.ZooCatcherTest.calcPoints({
+                base: a.baseScore,
+                combo: state.combo,
+                rare: a.isRare
+            });
+            state.score += points;
+            state.combo = window.ZooCatcherTest.nextCombo({
+                combo: state.combo,
+                success: true,
+                maxCombo: CONFIG.MAX_COMBO
+            });
+            state.animals.splice(i, 1);
+            caught = true;
+            break;
+        }
+    }
+
+    if (!caught) {
+        state.combo = window.ZooCatcherTest.nextCombo({
+            combo: state.combo,
+            success: false,
+            maxCombo: CONFIG.MAX_COMBO
+        });
+    }
+    updateUI();
+}
+
+function updateUI() {
+    scoreVal.innerText = state.score;
+    timerVal.innerText = state.timer;
+    comboVal.innerText = state.combo;
+    comboDisplay.style.opacity = state.combo > 1? 1 : 0;
+}
+
+function gameLoop(timestamp) {
+    const deltaTime = timestamp - state.lastTime;
+    state.lastTime = timestamp;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    if (state.gameActive) {
+        // Draw Light Effect (Darkness)
+        // We use a trick: Draw a black overlay with a hole using destination-out
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(state.mouse.x, state.mouse.y, 80, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fill();
+        ctx.restore();
+
+        // Draw Animals
+        for (let i = state.animals.length - 1; i >= 0; i--) {
+            const a = state.animals[i];
+            
+            // Move
+            a.x += a.vx;
+            a.y += a.vy;
+
+            // Bounce
+            if (a.x < 0 || a.x > canvas.width) a.vx *= -1;
+            if (a.y < 0 || a.y > canvas.height) a.vy *= -1;
+
+            // Escape logic: if light is NOT on them, they "age" or move faster? 
+            // Requirement: "animals that continue to be illuminated escape"
+            // Let's interpret: if light is on them, they might move faster or disappear.
+            const distToLight = Math.hypot(state.mouse.x - a.x, state.mouse.y - a.y);
+            if (distToLight < 80) {
+                a.life -= a.escapeSpeed;
+            }
+
+            if (a.life <= 0) {
+                state.animals.splice(i, 1);
+                state.combo = 0;
+                updateUI();
+                continue;
+            }
+
+            // Draw animal with opacity based on light/life
+            ctx.globalAlpha = Math.min(a.life, 1.0);
+            ctx.font = "40px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(a.emoji, a.x, a.y);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+// Start
+init();
+
+</script>
+</body>
+</html>
