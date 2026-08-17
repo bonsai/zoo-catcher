@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>暗闇の追跡者 - Dark Stalker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      overflow: hidden;
+      cursor: none;
+      font-family: 'Courier New', monospace;
+    }
+    canvas { display: block; }
+    #ui {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      padding: 20px;
+      color: #0f0;
+      font-size: 18px;
+      text-shadow: 0 0 10px #0f0;
+      pointer-events: none;
+      z-index: 10;
+    }
+    #crosshair {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px; height: 4px;
+      background: rgba(255,0,0,0.8);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 20;
+      box-shadow: 0 0 10px red;
+    }
+    #game-over, #start-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.95);
+      color: #0f0;
+      z-index: 100;
+    }
+    #game-over { display: none; }
+    h1 { font-size: 48px; margin-bottom: 20px; text-shadow: 0 0 20px #0f0; }
+    h2 { font-size: 32px; margin-bottom: 20px; color: #f00; text-shadow: 0 0 20px #f00; }
+    p { font-size: 18px; margin: 10px; color: #888; }
+    .btn {
+      margin-top: 30px;
+      padding: 15px 40px;
+      font-size: 24px;
+      background: transparent;
+      border: 2px solid #0f0;
+      color: #0f0;
+      cursor: pointer;
+      font-family: inherit;
+      text-shadow: 0 0 10px #0f0;
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      background: #0f0;
+      color: #000;
+    }
+    #battery-bar {
+      width: 200px;
+      height: 20px;
+      border: 2px solid #0f0;
+      margin-top: 10px;
+    }
+    #battery-fill {
+      height: 100%;
+      background: #0f0;
+      transition: width 0.1s;
+    }
+    .warning { color: #f00 !important; animation: blink 0.5s infinite; }
+    @keyframes blink { 50% { opacity: 0.3; } }
+  </style>
+</head>
+<body>
+  <div id="start-screen">
+    <h1>暗闇の追跡者</h1>
+    <h2>DARK STALKER</h2>
+    <p>暗闇に包まれた屋敷を探索せよ</p>
+    <p>モンスターは暗闇に潜む... フラッシュライトで照らし、撃ち殺せ</p>
+    <p> WASD: 移動 | マウス: 視点 | クリック: 射撃 | R: リロード</p>
+    <button class="btn" onclick="startGame()">GAME START</button>
+  </div>
+  <div id="game-over">
+    <h2>GAME OVER</h2>
+    <p id="final-score"></p>
+    <button class="btn" onclick="restartGame()">RETRY</button>
+  </div>
+  <div id="crosshair"></div>
+  <div id="ui">
+    <div>SCORE: <span id="score">0</span></div>
+    <div>WAVE: <span id="wave">1</span></div>
+    <div>HP: <span id="hp">100</span></div>
+    <div>AMMO: <span id="ammo">30</span> / <span id="max-ammo">30</span></div>
+    <div>BATTERY</div>
+    <div id="battery-bar"><div id="battery-fill" style="width:100%"></div></div>
+  </div>
+  <canvas id="game"></canvas>
+  <script type="module" src="dist/main.js"></script>
+</body>
+</html>

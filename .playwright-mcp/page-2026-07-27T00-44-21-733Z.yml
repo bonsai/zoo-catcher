@@ -1,0 +1,14 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - heading "暗闇の追跡者" [level=1] [ref=f1e3]
+    - heading "DARK STALKER" [level=2] [ref=f1e4]
+    - paragraph [ref=f1e5]: 暗闇に包まれた屋敷を探索せよ
+    - paragraph [ref=f1e6]: モンスターは暗闇に潜む... フラッシュライトで照らし、撃ち殺せ
+    - paragraph [ref=f1e7]: "WASD: 移動 | マウス: 視点 | クリック: 射撃 | R: リロード"
+    - button "GAME START" [ref=f1e8] [cursor=pointer]
+  - generic:
+    - generic: "SCORE: 0"
+    - generic: "WAVE: 1"
+    - generic: "HP: 100"
+    - generic: "AMMO: 30 / 30"
+    - generic: BATTERY
